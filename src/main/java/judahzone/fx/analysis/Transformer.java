@@ -1,4 +1,4 @@
-package net.judahzone.fx;
+package judahzone.fx.analysis;
 
 import static judahzone.util.WavConstants.AMPLITUDES;
 import static judahzone.util.WavConstants.FFT_SIZE;

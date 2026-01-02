@@ -1,4 +1,4 @@
-package net.judahzone.fx;
+package judahzone.fx.analysis;
 
 import java.util.Objects;
 import java.util.function.Consumer;

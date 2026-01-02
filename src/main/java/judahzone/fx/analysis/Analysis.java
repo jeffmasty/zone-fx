@@ -1,15 +1,13 @@
-package net.judahzone.fx;
+package judahzone.fx.analysis;
 
 import static judahzone.util.WavConstants.JACK_BUFFER;
 
-import java.nio.FloatBuffer;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
-import judahzone.api.Effect;
-import judahzone.util.AudioTools;
+import judahzone.api.FX;
 import judahzone.util.Memory;
 import judahzone.util.RTLogger;
 import judahzone.util.Recording;
@@ -19,7 +17,7 @@ import judahzone.util.Recording;
  * - Standardize snapshot/copy from RT into a Recording
  * Subclasses must implement analyze(Recording) which runs on the executor thread.
  */
-public abstract class Analysis<T> implements Effect {
+public abstract class Analysis<T> implements FX {
 
     // Executor used for analysis jobs. Can be supplied by subclasses or use default.
     private final ExecutorService executor;
@@ -52,10 +50,10 @@ public abstract class Analysis<T> implements Effect {
      * Subclasses must implement analyze(left,right) which runs on executor thread.
      */
     @Override
-    public final void process(FloatBuffer left, FloatBuffer right) {
+    public final void process(float[] left, float[] right) {
         final float[][] frame = Memory.STEREO.getFrame();
-        AudioTools.copy(left, frame[0]);
-        AudioTools.copy(right, frame[1]);
+        System.arraycopy(left,  0, frame[0], 0, N_FRAMES);
+        System.arraycopy(right, 0, frame[1], 0, N_FRAMES);
         realtime.add(frame);
         int current = realtime.size() * JACK_BUFFER;
         if (realtime.size() * JACK_BUFFER < bufferSize) {
