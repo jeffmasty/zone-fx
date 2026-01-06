@@ -11,7 +11,6 @@ import judahzone.api.Note;
 import judahzone.api.Tuning;
 import judahzone.util.Constants;
 import judahzone.util.RTLogger;
-import judahzone.util.Recording;
 import judahzone.util.WavConstants;
 
 /**
@@ -46,14 +45,15 @@ public class Tuner extends Analysis<Tuning> {
         this.probability = p;
     }
 
+    /** left */
     @Override
-    protected Tuning analyze(Recording rec) {
+    public Tuning analyze(float[] left, float[] right) {
         PitchDetector d = this.detector;
         if (d == null) {
             RTLogger.log(this, "No detector available");
             return null;
         }
-        PitchDetectionResult res = d.getPitch(rec.getLeft());
+        PitchDetectionResult res = d.getPitch(left);
         if (res == null) return null;
         float freq = res.getPitch();
         float prob = res.getProbability();

@@ -42,6 +42,11 @@ public abstract class Convolution implements FX {
         return names;
     }
 
+    @Override
+    public void process(float[] left, float[] right) {
+        // base class no-op
+    }
+
     // ======================================================================
     /** Wrapper around 2 Mono Convolvers */
     public static class Stereo extends Convolution implements FX.RTFX {
@@ -232,8 +237,4 @@ public abstract class Convolution implements FX {
         }
     }
 
-    @Override
-    public void process(float[] left, float[] right) {
-        // base class no-op
-    }
 }

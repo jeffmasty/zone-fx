@@ -7,25 +7,29 @@ import judahzone.util.Constants;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter public class Gain implements RTFX {
+public class Gain implements RTFX {
 
 	public enum Settings {VOLUME, PAN};
 
 	public static final int VOLUME = 0;
 	public static final int PAN = 1;
 
-	private final String name = "Gain";
-	private final int paramCount = 2;
-	private float gain = 0.5f;
+	@Getter private final String name = "Gain";
+	@Getter private final int paramCount = 2;
+	private float gain = 0.5f; // parameter in [0..1], 0.5 = unity
 	private float stereo = 0.5f;
-	@Setter private float preamp = 1f;
+	@Setter @Getter private float preamp = 1f;
 
 	/** Last effective left/right gains used in preamp() (preamp * pan). */
 	private float preCurrentL = 1f;
 	private float preCurrentR = 1f;
 
-	/** Last effective post-fader gain used in post(). */
+	/** Last effective post-fader gain used in post(). (linear multiplier) */
 	private float postCurrent = 1f;
+
+	public float getGain() {
+	    return 2 * gain;
+	}
 
 	/** pan/balance */
 	public boolean isActive() {
@@ -60,6 +64,11 @@ import lombok.Setter;
 	    stereo = p < 0 ? 0 : p > 1 ? 1 : p;
 	}
 
+	// Map parameter [0..1] to linear multiplier: 0 -> 0.0, 0.5 -> 1.0, 1.0 -> 2.0
+	private float gainToLinear() {
+	    return 2.0f * gain;
+	}
+
 	public float getLeft() {
 	    if (stereo < 0.5f) // towards left, half log increase
 	        return (1 + (0.5f - stereo) * 0.2f) * preamp;
@@ -84,9 +93,9 @@ import lombok.Setter;
 	    if (left == null) return;
 
 	    if (right == null) {
-	        // Mono: apply combined ramp for preamp * gain
-	        float targetPre = getLeft(); // in mono, use left pan target
-	        float targetPost = gain;
+	        // Mono: apply combined ramp for preamp * gain (gain mapped to linear multiplier)
+	        float targetPre = getLeft(); // in mono, use left pan target (includes preamp)
+	        float targetPost = gainToLinear();
 	        int n = left.length;
 	        if (n <= 0) return;
 	        float stepPre = (targetPre - preCurrentL) / n;
@@ -108,7 +117,7 @@ import lombok.Setter;
 	    // stereo
 	    float targetPreL = getLeft();
 	    float targetPreR = getRight();
-	    float targetPost = gain;
+	    float targetPost = gainToLinear();
 
 	    int n = Math.min(left.length, right.length);
 	    if (n <= 0) return;
@@ -142,7 +151,7 @@ import lombok.Setter;
 	 */
 	public void processMono(float[] mono) {
 	    if (mono == null) return;
-	    float precompute = preamp * gain;
+	    float precompute = preamp * gainToLinear();
 	    for (int z = 0; z < mono.length; z++)
 	        mono[z] = mono[z] * precompute;
 	}
@@ -162,7 +171,7 @@ import lombok.Setter;
 	/** gain only, with smoothing, stereo only */
 	public void post(float[] left, float[] right) {
 	    if (left == null || right == null) return;
-	    float target = gain;
+	    float target = gainToLinear();
 	    int frames = Constants.bufSize();
 	    ramp(left, frames, postCurrent, target);
 	    ramp(right, frames, postCurrent, target);
@@ -192,4 +201,14 @@ import lombok.Setter;
 	    preCurrentR = 1f;
 	    postCurrent = 1f;
 	}
+
+	// Helpers for dB <-> linear
+	public static float dbToLinear(float db) {
+	    return (float) Math.pow(10.0, db / 20.0);
+	}
+	public static float linearToDb(float lin) {
+	    if (lin <= 0f) return -60f;
+	    return (float) (20.0 * Math.log10(lin));
+	}
+
 }
