@@ -32,10 +32,10 @@ public class Delay implements TimeFX, RTFX {
     @Setter @Getter
     boolean sync;
     /** in seconds */
-    private float delayTime;
+    private volatile float delayTime;
     private float calculated; // delay in samples
     @Getter
-    private float feedback = 0.36f;
+    private volatile float feedback = 0.36f;
     private final VariableDelayOp left;
     private final VariableDelayOp right;
     @Setter

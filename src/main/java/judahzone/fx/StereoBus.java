@@ -118,9 +118,10 @@ public class StereoBus {
             } else {
                 offline.remove(effect);
             }
-        } else {
+        } else if (effect instanceof Gain) {
+        	// toggle mute or SOLO?
+        } else
             throw new InvalidParameterException(effect.toString());
-        }
         // gui updates left to callers
     }
 

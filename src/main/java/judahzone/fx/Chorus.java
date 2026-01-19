@@ -18,22 +18,17 @@ public class Chorus implements TimeFX, FX.RTFX {
     private static final float defaultDepth = 0.4f;
     private static final float defaultFeedback = 0.4f;
 
-    @Setter @Getter
-    private boolean sync;
-    @Setter @Getter
-    private String type = TYPE[0];
+    @Setter @Getter private boolean sync;
+    @Setter @Getter private String type = TYPE[0];
 
     /** times per second */
-    @Getter
     private float rate = defaultRate;
     /** between 0 and 1 */
-    @Getter
     private float depth = defaultDepth;
     /** between 0 and 1 */
-    @Getter
     private float feedback = defaultFeedback;
     /** between 0 and 1 */
-    @Getter @Setter
+    @Setter @Getter
     private float phase = 0.42f;
 
     private final LFODelay leftDsp = new LFODelay();
@@ -60,9 +55,9 @@ public class Chorus implements TimeFX, FX.RTFX {
         if (idx == Settings.Rate.ordinal())
             return Math.round(rate * 20);
         if (idx == Settings.Depth.ordinal())
-            return Math.round(getDepth() * 100);
+            return Math.round(depth * 100);
         if (idx == Settings.Feedback.ordinal())
-            return Math.round(getFeedback() * 100);
+            return Math.round(feedback * 100);
         if (idx == Settings.Type.ordinal())
             return TimeFX.indexOf(type);
         if (idx == Settings.Sync.ordinal())
@@ -99,12 +94,8 @@ public class Chorus implements TimeFX, FX.RTFX {
 
     @Override
     public void process(float[] left, float[] right) {
-        if (left != null) {
-            leftDsp.processReplace(left);
-        }
-        if (right != null) {
-            rightDsp.processReplace(right);
-        }
+        leftDsp.processReplace(left);
+        rightDsp.processReplace(right);
     }
 
     private class LFODelay {

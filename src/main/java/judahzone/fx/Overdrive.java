@@ -43,7 +43,7 @@ public final class Overdrive implements FX.RTFX {
     private float diode = 2f;
     private Algo algo = Algo.SMITH;
     private Waveshaper shaper = x -> x; // rebuild in activate()
-    private static final float SAFETY_OUTPUT_CLAMP = 0.995f;
+    private static final float SAFETY_OUTPUT_CLAMP = 0.999f;
 
     @Override public int get(int idx) {
         return switch (idx) {

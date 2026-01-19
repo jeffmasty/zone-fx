@@ -1,4 +1,3 @@
-// language: java
 package judahzone.fx;
 
 import static java.lang.Math.abs;

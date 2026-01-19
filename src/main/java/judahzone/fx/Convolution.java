@@ -87,7 +87,7 @@ public abstract class Convolution implements FX {
 
         protected float[] irFreq = new float[FFT_SIZE * 2];
         protected float wet = 0.9f;
-        protected int cabinet = -1;
+        protected int cabinet = 0;
 
         protected final float[] fftInOut = new float[FFT_SIZE * 2];
         protected final float[] overlap = new float[overlapSize];
