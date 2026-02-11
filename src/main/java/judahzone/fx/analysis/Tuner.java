@@ -8,7 +8,7 @@ import be.tarsos.dsp.pitch.PitchDetector;
 import be.tarsos.dsp.pitch.PitchProcessor.PitchEstimationAlgorithm;
 import judahzone.api.Key;
 import judahzone.api.Note;
-import judahzone.api.Tuning;
+import judahzone.data.Tuning;
 import judahzone.util.Constants;
 import judahzone.util.RTLogger;
 import judahzone.util.WavConstants;

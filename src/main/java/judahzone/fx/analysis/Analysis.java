@@ -8,9 +8,9 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import judahzone.api.FX.Calc;
+import judahzone.data.Recording;
 import judahzone.util.Memory;
 import judahzone.util.RTLogger;
-import judahzone.util.Recording;
 
 /**
  * Convenience Effect for "copy & analyze" style offline analysis effects.

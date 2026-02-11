@@ -5,6 +5,7 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 
 import judahzone.api.FX;
+import judahzone.fx.op.StereoBiquad;
 import judahzone.util.Constants;
 import lombok.Getter;
 
@@ -14,8 +15,8 @@ public class EQ implements FX.RTFX {
     public static enum EqBand { Bass, Mid, High }
     public static enum Properties { dB, Hz, Width }
 
-    public static final int MIN_HZ = Filter.MIN;
-    public static final int MAX_HZ = Filter.MAX;
+    public static final int MIN_HZ = CutFilter.MIN;
+    public static final int MAX_HZ = CutFilter.MAX;
     public static final int MID_HZ = (int) Constants.logarithmic(50, MIN_HZ, MAX_HZ);
     private static final float HI_MIN = MID_HZ * 2;
     private static final float LOW_MAX = MID_HZ / 2f;

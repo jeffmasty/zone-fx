@@ -1,4 +1,4 @@
-package judahzone.fx;
+package judahzone.fx.op;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -6,25 +6,30 @@ import java.util.List;
 
 import judahzone.api.FX;
 import judahzone.api.FX.RTFX;
+import judahzone.fx.Gain;
 import judahzone.util.Constants;
 
 /**
- * Float-array backed version of StereoBus.
+ * Stereo effects bus with hot-swappable real-time processing and offline effect chains.
+ * Thread-safe via lock-free hot-swap pattern: RT thread reads {@code active} list only,
+ * GUI thread modifies {@code pendingActive}, swap occurs at RT safe-point.
  *
- * - Uses float[] buffers (no FloatBuffer anywhere).
- * - Uses judahzone.api.FX and FX.RTFX for realtime effects.
- * - Preserves the same semantics as the original StereoBus:
- *     * per-channel working buffers owned here and exposed to callers
- *     * separate lists for known FX, active RTFX, pendingActive (hotswap),
- *       and offline FX
- *     * hot-swap behavior guarded by activeDirty
+ * <h3>RT Thread Usage (Audio Callback)</h3>
+ * Call {@link #process(float[], float[])} in audio loop. Internally:
+ * <ul>
+ *   <li>{@code hotSwap()} applies pending GUI changes (lock-free swap of {@code active})</li>
+ *   <li>Iterates immutable {@code active} list, no allocations</li>
+ * </ul>
  *
- * Notes:
- * - This class intentionally contains no references to java.nio.FloatBuffer.
- * - Callers that previously relied on StereoBus.getLeft()/getRight() returning
- *   FloatBuffer will need to be updated to use float[] with this class.
+ * <h3>GUI/Non-RT Thread Usage</h3>
+ * Call {@link #toggle(FX)}, {@link #setActive(FX, boolean)}, or {@link #reset()}.
+ * These modify {@code pendingActive} and set {@code activeDirty} flag.
+ * RT thread picks up changes at next {@code process()} call (latency ≤ 1 buffer).
+ *
+ * <h3>Offline Effects</h3>
+ * {@code offline} list (non-RT effects like LFOs) is NOT processed in RT path.
  */
-public class StereoBus {
+public class FXBus {
 
     protected static final int N_FRAMES = Constants.bufSize();
     protected static final int S_RATE = Constants.sampleRate();
@@ -51,12 +56,12 @@ public class StereoBus {
     // fx activate/deactivate flag
     private volatile boolean activeDirty = false;
 
-    protected StereoBus() {
+    protected FXBus() {
         pendingActive.addAll(active);
     }
 
     /** Effects ready at creation */
-    public StereoBus(FX... bus) {
+    public FXBus(FX... bus) {
         this();
         for (FX fx : bus) {
             effects.add(fx);
@@ -83,46 +88,6 @@ public class StereoBus {
             active.addAll(pendingActive);
             activeDirty = false;
         }
-    }
-
-    /** activate/deactive effect (hotswap gatekeeper) */
-    public void toggle(FX effect) {
-        boolean wasOn = isActive(effect);
-
-        // Determine new "on" state
-        boolean nowOn;
-        if (!wasOn) {
-            // turning on
-            nowOn = true;
-            effect.activate();
-        } else {
-            // turning off
-            nowOn = false;
-            effect.reset();
-        }
-
-        if (rt.contains(effect)) {
-            // RT effect: operate on pendingActive; swap will occur on RT thread
-            if (nowOn) {
-                if (!pendingActive.contains(effect))
-                    pendingActive.add((RTFX) effect);
-            } else {
-                pendingActive.remove(effect);
-            }
-            activeDirty = true;
-        } else if (effects.contains(effect)) {
-            // offline effect: just track in offline list
-            if (nowOn) {
-                if (!offline.contains(effect))
-                    offline.add(effect);
-            } else {
-                offline.remove(effect);
-            }
-        } else if (effect instanceof Gain) {
-        	// toggle mute or SOLO?
-        } else
-            throw new InvalidParameterException(effect.toString());
-        // gui updates left to callers
     }
 
     public void reset() {
@@ -166,4 +131,65 @@ public class StereoBus {
     public List<FX> listAll() {
         return new ArrayList<>(effects);
     }
+
+    /** Insert fx into pendingActive so processing order will match the canonical rt list. */
+    private void insertPendingInRtOrder(RTFX fx) {
+        if (pendingActive.contains(fx)) return; // already present, no-op
+
+        int desired = rt.indexOf(fx);
+        if (desired < 0) { // not known in rt — append
+            pendingActive.add(fx);
+            return;
+        }
+
+        int insertPos = pendingActive.size();
+        for (int i = 0, n = pendingActive.size(); i < n; i++) {
+            RTFX cur = pendingActive.get(i);
+            int curIdx = rt.indexOf(cur);
+            if (curIdx < 0) continue;                // unknown ordering, skip
+            if (curIdx > desired) { insertPos = i; break; } // insert before first with larger rt index
+        }
+        pendingActive.add(insertPos, fx);
+    }
+
+    /** activate/deactive effect (hotswap gatekeeper) */
+    public void toggle(FX effect) {
+        boolean wasOn = isActive(effect);
+
+        // Determine new "on" state
+        boolean nowOn;
+        if (!wasOn) {
+            // turning on
+            nowOn = true;
+            effect.activate();
+        } else {
+            // turning off
+            nowOn = false;
+            effect.reset();
+        }
+
+        if (rt.contains(effect)) {
+            // RT effect: operate on pendingActive; swap will occur on RT thread
+            if (nowOn) {
+                // preserve canonical rt order when adding
+                insertPendingInRtOrder((RTFX) effect);
+            } else {
+                pendingActive.remove(effect);
+            }
+            activeDirty = true;
+        } else if (effects.contains(effect)) {
+            // offline effect: just track in offline list
+            if (nowOn) {
+                if (!offline.contains(effect))
+                    offline.add(effect);
+            } else {
+                offline.remove(effect);
+            }
+        } else if (effect instanceof Gain) {
+            // toggle mute or SOLO?
+        } else
+            throw new InvalidParameterException(effect.toString());
+        // gui updates left to callers
+    }
+
 }

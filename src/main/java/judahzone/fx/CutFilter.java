@@ -1,13 +1,15 @@
-// language: java
 package judahzone.fx;
 
 import java.security.InvalidParameterException;
 
 import judahzone.api.FX;
+import judahzone.fx.op.StereoBiquad;
 import judahzone.util.Constants;
 import lombok.Getter;
 
-public class Filter implements FX.RTFX {
+/** Stereo biquad filter with type, frequency, bandwidth, and gain control.
+Supports lowpass/highpass switching via MIDI-mapped parameters. */
+public class CutFilter implements FX.RTFX {
 
     public enum Settings { Type, Hz, Width, dB }
 
@@ -15,13 +17,13 @@ public class Filter implements FX.RTFX {
     public static final int MAX = 13500;
 
     @Getter
-    private final String name = Filter.class.getSimpleName();
+    private final String name = CutFilter.class.getSimpleName();
     @Getter
     private final int paramCount = Settings.values().length;
 
     private final StereoBiquad filter;
 
-    public Filter(boolean lowPass) {
+    public CutFilter(boolean lowPass) {
         float hz = lowPass ? MAX : MIN;
         StereoBiquad.FilterType type = lowPass
                 ? StereoBiquad.FilterType.LowPass

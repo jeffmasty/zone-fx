@@ -7,7 +7,7 @@ import static judahzone.util.WavConstants.TRANSFORM;
 import java.util.function.Consumer;
 
 import be.tarsos.dsp.util.fft.HammingWindow;
-import judahzone.api.Transform;
+import judahzone.data.Transform;
 import judahzone.util.AudioMetrics;
 import judahzone.util.FFZ;
 

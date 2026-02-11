@@ -148,52 +148,6 @@ public abstract class Convolution implements FX {
             throw new InvalidParameterException("Unknown param index: " + idx);
         }
 
-        /** Convolve Add and make stereo (caller supplies mono and stereo arrays) */
-        public void monoToStereo(float[] mono, float[] stereo) {
-        	if (wet <= 0f) {
-                int len = Math.min(N_FRAMES, Math.min(mono.length, stereo.length));
-                System.arraycopy(mono, 0, stereo, 0, len);
-                return;
-            }
-            float dryGain = 1.0f - wet;
-            float wetGain = wet;
-
-            System.arraycopy(mono, 0, work0, 0, N_FRAMES);
-
-            Arrays.fill(fftInOut, 0f);
-            System.arraycopy(overlap, 0, fftInOut, 0, overlapSize);
-            System.arraycopy(work0, 0, fftInOut, overlapSize, N_FRAMES);
-
-            System.arraycopy(fftInOut, N_FRAMES, overlap, 0, overlapSize);
-
-            fft.forwardTransform(fftInOut);
-
-            for (int k = 0, idx = 0; k < FFT_SIZE; k++, idx += 2) {
-                float a = fftInOut[idx];
-                float b = fftInOut[idx + 1];
-                float c = irFreq[idx];
-                float d = irFreq[idx + 1];
-                float real = a * c - b * d;
-                float imag = a * d + b * c;
-                fftInOut[idx] = real;
-                fftInOut[idx + 1] = imag;
-            }
-
-            ifft.backwardsTransform(fftInOut);
-
-            for (int i = 0; i < N_FRAMES; i++) {
-                float proc = fftInOut[overlapSize + i];
-                float in = work0[i];
-                float mixed = dryGain * in + wetGain * proc;
-                work1[i] = mixed;
-            }
-
-            System.arraycopy(work1, 0, mono, 0, N_FRAMES);
-            if (stereo != null) {
-                System.arraycopy(work1, 0, stereo, 0, N_FRAMES);
-            }
-        }
-
         /** Realtime mono convolve-add */
         public void process(float[] mono) {
             final float dryGain = 1.0f - wet;
@@ -233,7 +187,7 @@ public abstract class Convolution implements FX {
 
         @Override
         public void process(float[] left, float[] right) {
-            // no-op base implementation for FX; actual use is via process(mono) or monoToStereo
+            // no-op base implementation for FX; actual use is via process(mono)
         }
     }
 

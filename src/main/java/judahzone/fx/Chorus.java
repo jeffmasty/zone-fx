@@ -99,18 +99,19 @@ public class Chorus implements TimeFX, FX.RTFX {
     }
 
     private class LFODelay {
-        private int lfocount;
-        @Setter
-        float delay = depth * 0.001f;
+        // lowpass filter for feedback, could be made stereo
+        private static final float fbCut = 0.33f; // darker 0..1 brighter/faster
+
+    	private int lfocount;
+        @Setter float delay = depth * 0.001f;
         float[] workArea = new float[N_FRAMES];
         float range = 0.5f;
         float delayTime;
         int rovepos;
         float lastdelay;
 
-        // lowpass filter for feedback
+
         float fbFilterState = 0f;
-        final float fbCut = 0.25f; // 0..1
 
         void goFigure() {
             if (rate > 0.01 && range > 0) {

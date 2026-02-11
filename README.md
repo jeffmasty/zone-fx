@@ -21,8 +21,9 @@ Key components
 	•  Compressor — dynamics compression stage
 	•  Freeverb — reverb implementation (Freeverb + wrapper)
 	•  Convolution — impulse‑response (IR) based cab/IR convolution
-	•  StereoBus — combines per‑channel FX (gain, filters, delays) and manages activation and processing order
 	•  FX — base utility/interface for effect units and parameter handling
+	•  OP —  low-level dsps (filters, delays, noise, FXBus)
+	•  FXBus — combines per‑channel FX (gain, filters, delays) and manages activation and processing order
 	•  Analysis helpers: Analysis, Transformer, Tuner — FFT and pitch‑detection utilities
 	
 Design notes

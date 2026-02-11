@@ -12,7 +12,8 @@ package judahzone.fx;
 import java.security.InvalidParameterException;
 import java.util.Arrays;
 
-import lombok.Setter;
+import judahzone.fx.op.Comb;
+import judahzone.fx.op.Schroeder;
 
 /** The classic Freeverb algorithm, true stereo with independent L/R filter networks */
 public final class Freeverb extends Reverb {
@@ -42,8 +43,8 @@ public final class Freeverb extends Reverb {
     private Comb[] combR;
     // Allpass filters
     private int numallpasses;
-    private Allpass[] allpassL;
-    private Allpass[] allpassR;
+    private Schroeder[] allpassL;
+    private Schroeder[] allpassR;
     //scratch buffers
     private float[] inScratchL = new float[N_FRAMES];
     private float[] inScratchR = new float[N_FRAMES];
@@ -70,13 +71,13 @@ public final class Freeverb extends Reverb {
 
         int[] tuning = {408,  616,   550, 467, 321, 239};
         numallpasses = tuning.length;
-        allpassL = new Allpass[numallpasses];
-        allpassR = new Allpass[numallpasses];
+        allpassL = new Schroeder[numallpasses];
+        allpassR = new Schroeder[numallpasses];
         for (int i = 0; i < numallpasses; i++) {
             int sizeL = tuning[i];
-            int sizeR = Math.max(1, sizeL + (i % 2 == 0 ? 11 : -7)); // small allpassR decorrelation
-            allpassL[i] = new Allpass(sizeL);
-            allpassR[i] = new Allpass(sizeR);
+            int sizeR = Schroeder.decorrelate(sizeL, i);
+            allpassL[i] = new Schroeder(sizeL);
+            allpassR[i] = new Schroeder(sizeR);
         }
         for (int i = 0; i < numallpasses; i++) {
             allpassL[i].setFeedback(0.6f);
@@ -267,104 +268,13 @@ public final class Freeverb extends Reverb {
             buf[i] = buf[i] + work[i] * wet; // simple mono wet
     }
 
-    private class Comb {
-
-        @Setter float feedback; // roomsize
-        float filterstore = 0;
-        float damp1;
-        float damp2;
-        float[] buffer;
-        final int bufsize;
-        int bufidx = 0;
-
-        public Comb(int size) {
-            bufsize = Math.max(1, size);
-            reset();
-        }
-
-        public void reset() {
-            buffer = new float[bufsize];
-            bufidx = 0;
-            filterstore = 0;
-        }
-
-        public void processMix(float inputs[], float outputs[]) {
-            for (int i = 0; i < N_FRAMES; i++) {
-                float output = buffer[bufidx];
-
-                // undenormalise
-                if (output > 0.0f && output < 1.0E-9f)
-                    output = 0;
-                if (output < 0.0f && output > -1.0E-9f)
-                    output = 0;
-
-                filterstore = (output * damp2) + (filterstore * damp1);
-                // undenormalise(filterstore);
-                if (filterstore > 0.0f && filterstore < 1.0E-9f)
-                    filterstore = 0;
-                else if (filterstore < 0.0f && filterstore > -1.0E-9f)
-                    filterstore = 0;
-
-                buffer[bufidx] = inputs[i] + (filterstore * feedback);
-
-                if (++bufidx >= bufsize)
-                    bufidx = 0;
-
-                outputs[i] += output;
-            }
-        }
-
-        public void setdamp(float val) {
-            damp1 = val;
-            damp2 = 1 - val;
-        }
-
-    }
-
-    private class Allpass {
-
-        @Setter float feedback = 0.5f;
-        float[] buffer;
-        int bufidx = 0;
-        final int size;
-
-        public Allpass(int size) {
-            this.size = Math.max(1, size);
-            reset();
-        }
-
-        public void reset() {
-            buffer = new float[size];
-            bufidx = 0;
-        }
-
-        public void processReplace(float inputs[], float outputs[]) {
-            float input;
-            for (int i = 0; i < N_FRAMES; i++) {
-
-                // undenormalise
-                if (buffer[bufidx] > 0 && buffer[bufidx] < 1.0E-9)
-                    buffer[bufidx] = 0;
-                else if (buffer[bufidx] < 0.0 && buffer[bufidx] > -1.0E-9)
-                    buffer[bufidx] = 0;
-
-                input = inputs[i];
-                outputs[i] = -input + buffer[bufidx];
-                buffer[bufidx] = input + buffer[bufidx] * feedback;
-                if (++bufidx >= size) {
-                    bufidx = 0;
-                }
-            }
-        }
-   }
-
     @Override
     public void reset() {
-        for (Allpass l : allpassL)
+        for (Schroeder l : allpassL)
             l.reset();
         for (Comb l : combL)
             l.reset();
-        for (Allpass r : allpassR)
+        for (Schroeder r : allpassR)
             r.reset();
         for (Comb r : combR)
             r.reset();
