@@ -3,7 +3,7 @@ package judahzone.fx;
 import java.security.InvalidParameterException;
 
 import judahzone.api.FX;
-import judahzone.data.Frequency;
+import judahzone.api.Frequency;
 import judahzone.util.Constants;
 import lombok.Getter;
 

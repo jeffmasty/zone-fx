@@ -1,4 +1,4 @@
-package judahzone.fx.op;
+package judahzone.filter;
 
 import judahzone.util.Constants;
 import judahzone.util.Filters;
@@ -25,6 +25,13 @@ public class MonoPeaking implements Filters {
 
     /* per-instance filter state (mono) */
     private float xn1, xn2, yn1, yn2;
+
+    public MonoPeaking(FilterT setup) {
+    	this.frequency = setup.hz();
+		this.gain_db = setup.dB();
+		this.bandwidth = setup.bandwidth();
+		coefficients(); // compute initial coefficients
+    }
 
     /** Constructor with explicit sample rate / oversample factor. */
     public MonoPeaking(float frequency, float gainDb) {
@@ -161,4 +168,8 @@ public class MonoPeaking implements Filters {
     public void reset() {
         xn1 = xn2 = yn1 = yn2 = 0f;
     }
+
+	public int getBandwidthKnob() {
+		return (int) ((bandwidth - Filters.MIN_BANDWIDTH) / (Filters.MAX_BANDWIDTH - Filters.MIN_BANDWIDTH) * 100f);
+	}
 }

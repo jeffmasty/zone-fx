@@ -1,4 +1,4 @@
-package judahzone.fx.op;
+package judahzone.filter;
 
 import judahzone.util.Constants;
 import judahzone.util.Filters;
@@ -42,11 +42,11 @@ public class StereoBiquad {
 		this(type, frequency, 2, 16f);
 	}
 
-	public StereoBiquad(int hz) {
+	public StereoBiquad(float hz) {
 		this(hz, 1.5f);
 	}
 
-	public StereoBiquad(int hz, float bandwidth) { // EQ
+	public StereoBiquad(float hz, float bandwidth) { // EQ
 		this(FilterType.Peaking, hz, bandwidth, 0f);
 	}
 

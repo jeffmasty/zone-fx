@@ -3,7 +3,7 @@ package judahzone.fx;
 import java.security.InvalidParameterException;
 
 import judahzone.api.FX;
-import judahzone.fx.op.StereoBiquad;
+import judahzone.filter.StereoBiquad;
 import judahzone.util.Constants;
 import lombok.Getter;
 

@@ -2,13 +2,21 @@
 package judahzone.fx;
 
 import java.security.InvalidParameterException;
+import java.util.function.Supplier;
 
 import judahzone.api.FX.RTFX;
+import judahzone.fx.Gain.GainT;
 import judahzone.util.Constants;
 import lombok.Getter;
 import lombok.Setter;
 
-public class Gain implements RTFX {
+public class Gain implements RTFX, Supplier<GainT> {
+
+	public static record GainT(float preamp, float gain, float pan, float width) {
+		public GainT(float pre) {
+			this(pre, 0.5f, 0.5f, 1f);
+		}
+	}
 
 	public enum Settings {VOLUME, PAN, WIDTH};
 
@@ -19,7 +27,7 @@ public class Gain implements RTFX {
 	@Getter private final String name = Gain.class.getSimpleName();
 	@Getter private final int paramCount = Settings.values().length;
 	@Setter @Getter private float preamp = 1f;
-	private float gain = 0.5f; // parameter in [0..1], 0.5 = unity
+	@Getter private float gain = 0.5f; // parameter in [0..1], 0.5 = unity
 	private float stereo = 0.5f; // pan/balance 0=left .. 0.5=center .. 1=right
 	@Getter private float width = 1f; // mid/side stereo  0=mono .. 1=normal .. 2=wide
 
@@ -31,8 +39,8 @@ public class Gain implements RTFX {
 	/** Last effective post-fader gain used in post(). (linear multiplier) */
 	private float postCurrent = 1f;
 
-	public float getGain() {
-	    return 2 * gain;
+	public float getPan() {
+	    return stereo;
 	}
 
 	/** pan/balance */
@@ -282,6 +290,11 @@ public class Gain implements RTFX {
 	public static float linearToDb(float lin) {
 	    if (lin <= 0f) return -60f;
 	    return (float) (20.0 * Math.log10(lin));
+	}
+
+	@Override
+	public GainT get() {
+		return new GainT(preamp, gain, stereo, width);
 	}
 
 }

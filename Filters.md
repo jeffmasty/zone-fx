@@ -48,7 +48,7 @@ implements them safely for real-time audio.
 
 ## Practical Filter Classes & JudahZone Implementations
 
-### Biquad Filters (IIR, 2nd Order)
+### Biquad: "Bi": 2nd‑order IIR  "Quad": state values (xn1, xn2, yn1, yn2)
 
 **Structure**: Direct Form or transposed state-space. Normalized
 coefficients: b0, b1, b2, a1, a2 (with a0 = 1 after normalization).
@@ -257,4 +257,46 @@ propagation. Monitor feedback paths for instability.
 Tiny floating-point values (< 1e-8) can cause CPU stalls on some
 processors. Clamp denormals to zero. Most filter classes in JudahZone
 include denormal checks in feedback paths.
+
+
+TODO:
+
+Unify/refactor coefficient interpolation
+
+	•  Shared responsibilities to extract into a base helper/BiquadOp:
+	•  common fields: a0..a2, b0..b2, lastA*, lastB*, coeffDirty, haveLastCoeffs, N_FRAMES, INV, DENORM.
+	•  per-channel state management pattern: mono xn1,xn2,yn1,yn2 and stereo xn1L,...xn2R,... with reset helpers.
+	•  inner loop templates: (fast path) and (interpolation path) with prefetch of locals and denorm clamping.
+	•  utilities: commitLastCoeffs(), markDirty(), setCoefficientsFrom(Filters.Coeffs) and normalizeCoeffs().
+	•  safety helpers: clamp frequency/bandwidth, denormal fix, and optional tiny exponential smoothing for UI→RT transition.
+	•  Per‑filter specialization:
+	•  abstract method computeCoefficients() or Filters.Coeffs buildCoeffs() that each subclass overrides (Peaking, AllPass, BandPass, LowPass, HighPass).
+	•  subclasses only provide parameter storage & setters that call computeCoefficients() (non‑RT) and then rely on markDirty() to trigger interpolation on next process call.
+	•  API and threading considerations:
+	•  compute coefficients off the audio thread (GUI thread) and then atomically publish by writing plain floats and setting coeffDirty = true. That pattern is already present; keep it but document threading contract: setters are not RT but must not allocate on RT.
+	•  avoid synchronization/locking in audio path; use simple boolean flags and accept benign data races for parameter updates (common real‑time pattern).
+	•  if stronger guarantees desired, publish new coeffs into a preallocated volatile struct and use a single atomic swap; but avoid volatile reads/writes inside inner sample loop. Prefer a single volatile flag or an RT-friendly queue if strict ordering needed.
+	•  Edge cases and pitfalls to handle:
+	•  a0 may not be 1.0 unless normalized; handle iao = 1.0f / curA0 inside inner loop for non‑normalized forms (as MonoPeaking does).
+	•  floating equality checks for fast path are okay because setters recompute exact same float values; but small rounding on different threads can cause flip‑flop — still acceptable for performance path.
+	•  denormals: keep the small clamp to zero and avoid branching per sample by doing a cheap check or by adding a very small DC offset outside the RT path if desired.
+	•  stereo state duplication: keep independent states for L/R; share coefficient interpolation but separate state copies inside the inner loops.
+
+How to split the work (practical plan)
+
+	1. Create abstract class BiquadOp implements Filters containing shared fields, processMono() and processStereo() templates with hooks for:
+	2. protected abstract void computeCoeffs();
+	3. protected boolean needsNormalization() or accept Filters.Coeffs.
+	4. Move coefficient bookkeeping (last*, commit, denorm clamp) into BiquadOp.
+	5. Implement AllPass, MonoPeaking, BandPass, etc., as small subclasses that only compute coefficients via Filters.compute(...) and call setCoefficients(Coeffs).
+	6. Keep Interpolation.java as the per‑sample enum for delay taps; keep that separate — it addresses a different interpolation domain (spatial vs coefficient ramping).
+	7. Add tests for: fast path fidelity, smooth transitions across parameter jumps, extreme bandwidth/frequency clamping, and denormal handling.
+
+Resulting benefits
+
+	•  Remove duplicate inner‑loop code across biquads, reducing maintenance and bugs.
+	•  Single place for performance tuning (e.g., unrolling, denorm policy).
+	•  Easier addition of new biquad types (Notch, shelving) by implementing a small compute method.
+
+
 

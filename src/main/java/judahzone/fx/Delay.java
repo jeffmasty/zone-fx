@@ -9,8 +9,8 @@ import judahzone.util.Constants;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Two Identical Mono Delays. Delay time and feedback are interpolated over the
- \ period of one buffer. */
+/** Two Identical Mono Delays. Delay time and feedback are
+ * interpolated over the period of one buffer. */
 public class Delay implements TimeFX, RTFX {
 
     public enum Settings {
@@ -102,6 +102,10 @@ public class Delay implements TimeFX, RTFX {
         float msec = 0.001f * (unit + unit * TimeFX.indexOf(type));
         setDelayTime(2 * msec);
     }
+
+    public void process(float[] mono) {
+		left.process(mono);
+	}
 
     @Override public void process(float[] leftBuffer, float[] rightBuffer) {
         left.process(leftBuffer);

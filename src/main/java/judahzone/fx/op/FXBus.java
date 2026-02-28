@@ -34,7 +34,7 @@ public class FXBus {
     protected static final int N_FRAMES = Constants.bufSize();
     protected static final int S_RATE = Constants.sampleRate();
 
-    // per-channel working buffers (owned here so GUI, headless and analyzers share the same buffers)
+    // per-channel working buffers (owned here so RT, GUI and analyzers share the same buffers)
     protected final float[] left = new float[N_FRAMES];
     protected final float[] right = new float[N_FRAMES];
 
@@ -74,12 +74,12 @@ public class FXBus {
     public float[] getLeft() { return left; }
     public float[] getRight() { return right; }
 
-    /** process active real-time effects on the supplied buffers */
-    public void process(float[] l, float[] r) {
-        hotSwap();
-        for (RTFX fx : active)
-            fx.process(l, r);
-    }
+//    /** process active real-time effects on the supplied buffers */
+//    public void process(float[] l, float[] r) {
+//        hotSwap();
+//        for (RTFX fx : active)
+//            fx.process(l, r);
+//    }
 
     // pass gui changes to the rt thread
     protected void hotSwap() {

@@ -1,5 +1,6 @@
 package judahzone.fx.op;
 
+import judahzone.prism.PrismRT;
 import judahzone.util.Constants; // for sample rate used by velvet density
 
 
@@ -11,31 +12,40 @@ import judahzone.util.Constants; // for sample rate used by velvet density
  *  inner audio loop can call `next()` at an oversampled rate and preserve
  *  the intended per-base-sample filter behaviour (where possible).
  */
-public final class NoiseGen {
+@PrismRT
+public final class Noise {
 
 	private static final int SR = Constants.sampleRate();
-    private static final float VELVET_DENSITY = 400f; // taps per second (sparse)
+    public static final float TARGET_RMS = 0.25f;
+
+	private static final float VELVET_DENSITY = 400f; // taps per second (sparse)
     private static final float PROBABILITY = VELVET_DENSITY / SR; // probability per sample for velvet noise
 
     @FunctionalInterface
-    private interface ColourFn { float apply(NoiseGen g); }
+    private interface ColourFn { float apply(Noise g); }
 
     public enum Colour {
         /** -6dB/octave rolloff, 1/f² spectrum (deep, rumbling) */
-        BROWN(g -> g.brown(g.white())),
+        BROWN(g -> g.brown(g.white()), 0.058998555f),
         /** -3dB/octave rolloff, 1/f spectrum (natural ambient) */
-        PINK(g -> g.pink(g.white())),
+        PINK(g -> g.pink(g.white()), 0.12814124f),
         /** sparse impulses with random sign, tuned density (airy, clicky) */
-        VELVET(g -> g.velvet(g.white())), // fine-tune: VELVET_DENSITY
+        VELVET(g -> g.velvet(g.white()), 0.043f), // fine-tune: VELVET_DENSITY
         /** perceptually flat (pink + equal-loudness curve) */
-        GREY(g -> g.grey(g.white())),
+        GREY(g -> g.grey(g.white()), 0.17763424f),
         /** flat frequency response, uncorrelated samples */
-        WHITE(g -> g.white());
+        WHITE(g -> g.white(), 0.41666985f);
 
-        private final ColourFn fn;
-        Colour(ColourFn fn) { this.fn = fn; }
+        final ColourFn fn;
+        final float normGain; // normalization multiplier to map raw RMS -> TARGET_RMS
 
-        public float next(NoiseGen gen) { return fn.apply(gen); }
+        Colour(ColourFn fn, float rawRms) { // test-measured raw RMS under 50/11000 cutFilter conditions
+            this.fn = fn;
+            // Correct normalization: scale the colour so its measured raw RMS maps to TARGET_RMS.
+            this.normGain = TARGET_RMS / rawRms;
+        }
+
+        public float next(Noise gen) { return fn.apply(gen) * normGain; }
     }
 
     private int rngState = 0x13579BDF; // xorshift32 state (non-zero)
@@ -44,7 +54,6 @@ public final class NoiseGen {
     private float brownState = 0f; // integrator for brown noise
 
     private Colour colour = Colour.WHITE;
-    private float gain = 1.0f;
 
     private final int oversampleFactor;
 
@@ -59,7 +68,7 @@ public final class NoiseGen {
     private final float brownFeed;
 
     /** Construct with explicit oversample factor (>=1). */
-    public NoiseGen(int factor) {
+    public Noise(int factor) {
         oversampleFactor = Math.max(1, factor);
 
         // Paul Kellet base coefficients (original per-sample multipliers and feeds)
@@ -112,19 +121,14 @@ public final class NoiseGen {
         // TODO: VELVET/VIOLET further tuning
     }
 
-    public NoiseGen() {
+    public Noise() {
         this(1);
     }
 
-    public NoiseGen(int factor, Colour colour) {
+    public Noise(int factor, Colour colour) {
         this(factor);
-        setColor(colour);
+        setColour(colour);
     }
-
-    public void setColor(Colour c) { if (c != null) colour = c; }
-
-    // linear gain multiplier applied to samples
-    public void setGain(float g) { gain = g; }
 
     // fast xorshift32 -> float in [-1,1]
     private float white() {
@@ -187,7 +191,7 @@ public final class NoiseGen {
 
     // produce one sample (already in -1..1 range, multiplied by gain)
     public float next() {
-        return colour.next(this) * gain;
+        return colour.next(this);
     }
 
     /** Expose the raw white generator for callers that want to apply
@@ -217,4 +221,14 @@ public final class NoiseGen {
     }
 
     public Colour getColour() { return colour; }
+
+    public void setColour(Colour c) { if (c != null) colour = c; }
+
+    public void setColourKnob(int val) {
+		setColour((Colour) Constants.ratio(val, Colour.values()));
+	}
+
+	public int getColourKnob() {
+		return colour.ordinal() * 100 / (Colour.values().length - 1);
+	}
 }

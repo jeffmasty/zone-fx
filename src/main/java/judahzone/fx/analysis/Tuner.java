@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import be.tarsos.dsp.pitch.PitchDetectionResult;
 import be.tarsos.dsp.pitch.PitchDetector;
 import be.tarsos.dsp.pitch.PitchProcessor.PitchEstimationAlgorithm;
-import judahzone.api.Key;
+import judahzone.api.Frequency;
 import judahzone.api.Note;
 import judahzone.data.Tuning;
 import judahzone.util.Constants;
@@ -48,19 +48,15 @@ public class Tuner extends Analysis<Tuning> {
     /** left */
     @Override
     public Tuning analyze(float[] left, float[] right) {
-        PitchDetector d = this.detector;
-        if (d == null) {
-            RTLogger.log(this, "No detector available");
-            return null;
-        }
-        PitchDetectionResult res = d.getPitch(left);
+        PitchDetectionResult res = detector.getPitch(left);
         if (res == null) return null;
         float freq = res.getPitch();
         float prob = res.getProbability();
         if (freq <= 0 || prob < probability) return null;
-        Note note = Key.toNote(freq);
+        Note note = Frequency.toNote(freq);
         float deviation = 0f;
-        if (note != null) deviation = freq - Key.toFrequency(note);
+        if (note != null)
+        	deviation = freq - Frequency.toFrequency(note);
         return new Tuning(freq, prob, note, deviation);
     }
 
