@@ -4,7 +4,7 @@ import judahzone.util.Constants;
 import judahzone.util.Filters;
 
 /** Mono peaking biquad with coefficient smoothing suitable for RT audio. */
-public class MonoPeaking implements Filters {
+public class MonoPeaking implements Filters { // todo FX
 
 	private float frequency;
 	private float bandwidth = 0.5f;
@@ -98,6 +98,8 @@ public class MonoPeaking implements Filters {
     public float getFrequency() { return frequency; }
     public float getBandwidth() { return bandwidth; }
     public float getGainDb() { return gain_db; }
+    public FilterT get() { return new FilterT(frequency, gain_db, bandwidth); }
+
 
     /** Process a mono buffer in-place. Non-allocating, real-time safe. */
     public void process(float[] buff) {

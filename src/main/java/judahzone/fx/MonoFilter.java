@@ -3,8 +3,9 @@ package judahzone.fx;
 import java.security.InvalidParameterException;
 
 import judahzone.api.FX;
-import judahzone.api.Frequency;
+import judahzone.filter.Coord;
 import judahzone.util.Constants;
+import judahzone.util.Frequency;
 import lombok.Getter;
 
 /**	•  IIR Filter op ported from Gervill. MONO op (uses left channel only).
@@ -49,6 +50,10 @@ public class MonoFilter implements FX {
 	    if (idx == Settings.Resonance.ordinal())
 	        return (int)(resonancedB * 4);
 	    throw new InvalidParameterException();
+	}
+
+	public Coord get() {
+		return new Coord(frequency, (float)resonancedB);
 	}
 
 	@Override public void set(int idx, int value) {

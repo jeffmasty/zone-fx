@@ -1,10 +1,11 @@
 # zone-fx
 
-Lightweight, realtime-aware Digital Signal Processing (DSP) units for JudahZone.
+Lightweight, realtime-aware Digital Signal Processing (DSP)
 
 Summary
 - Implements small, allocation-minimal DSP building blocks intended for realtime use in audio threads.
 - Effects expose simple parameter setters so a GUI or host can update values asynchronously.
+- Output:   -1 .. 1  (summed into passed float[]) 
 
 Where to find the code
 - Main FX package: `src/main/java/judahzone/fx`
@@ -12,7 +13,7 @@ Where to find the code
 
 Key components
 
-	•  Gain — simple gain stage
+	•  Gain — pre/post/pan/width staging
 	•  EQ — multi‑band EQ wrapper that configures cascaded filters
 	•  Filter, MonoFilter, StereoBiquad — filter primitives and biquad helper implementations
 	•  Delay — delay/echo line with feedback and wet/dry controls
@@ -50,10 +51,6 @@ Dependencies and repository notes
 - If building standalone, add the Tarsos repository to your Maven settings or pom:
   - `https://mvn.0110.be/releases` (Tarsos \`.be\` repository).
 - When building inside `meta-zone`, dependency versions and repository entries are managed by the parent `pom.xml`.
-
-Runtime notes
-- `zone-fx` is a library; runtime requirements depend on the host application that uses it. If used inside the JACK/JNAJack client, native JACK libraries and a running JACK server are required by that client layer (see the `zone-jnajack` module for JACK-specific runtime notes).
-- `zone-test` provides a JackClient Java-Swing test channel strip that can be applied against a loaded-in MP3 file.
 
 Credits
 - Delay, MonoFilter, FreeVerb, Chorus and the 'Smith' OverDrive adapted from Neil C Smith's JAudioLibs.

@@ -3,7 +3,7 @@ package judahzone.fx;
 import java.security.InvalidParameterException;
 
 import judahzone.api.FX.RTFX;
-import judahzone.api.TimeFX;
+import judahzone.api.FX.TimeFX;
 import judahzone.fx.op.VariableDelayOp;
 import judahzone.util.Constants;
 import lombok.Getter;

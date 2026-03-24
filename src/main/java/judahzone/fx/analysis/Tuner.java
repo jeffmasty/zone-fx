@@ -6,10 +6,10 @@ import java.util.function.Consumer;
 import be.tarsos.dsp.pitch.PitchDetectionResult;
 import be.tarsos.dsp.pitch.PitchDetector;
 import be.tarsos.dsp.pitch.PitchProcessor.PitchEstimationAlgorithm;
-import judahzone.api.Frequency;
-import judahzone.api.Note;
+import judahzone.data.Note;
 import judahzone.data.Tuning;
 import judahzone.util.Constants;
+import judahzone.util.Frequency;
 import judahzone.util.RTLogger;
 import judahzone.util.WavConstants;
 

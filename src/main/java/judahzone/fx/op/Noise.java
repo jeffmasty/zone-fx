@@ -46,6 +46,11 @@ public final class Noise {
         }
 
         public float next(Noise gen) { return fn.apply(gen) * normGain; }
+
+
+		public static int getKnob(Colour colour) {
+			return colour.ordinal() * 100 / (Colour.values().length - 1);
+		}
     }
 
     private int rngState = 0x13579BDF; // xorshift32 state (non-zero)
@@ -222,6 +227,10 @@ public final class Noise {
 
     public Colour getColour() { return colour; }
 
+    public void setColour(String name) {
+    	setColour(Colour.valueOf(name.toUpperCase()));
+	}
+
     public void setColour(Colour c) { if (c != null) colour = c; }
 
     public void setColourKnob(int val) {
@@ -229,6 +238,6 @@ public final class Noise {
 	}
 
 	public int getColourKnob() {
-		return colour.ordinal() * 100 / (Colour.values().length - 1);
+		return Colour.getKnob(colour);
 	}
 }

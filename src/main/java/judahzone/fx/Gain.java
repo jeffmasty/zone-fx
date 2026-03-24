@@ -16,6 +16,11 @@ public class Gain implements RTFX, Supplier<GainT> {
 		public GainT(float pre) {
 			this(pre, 0.5f, 0.5f, 1f);
 		}
+		public GainT(float pre, float gain, float pan) {
+			this(pre, gain, pan, 1f);
+		}
+
+
 	}
 
 	public enum Settings {VOLUME, PAN, WIDTH};
@@ -32,8 +37,8 @@ public class Gain implements RTFX, Supplier<GainT> {
 	@Getter private float width = 1f; // mid/side stereo  0=mono .. 1=normal .. 2=wide
 
 	/** Last effective left/right gains used in preamp() (preamp * pan). */
-	private float preCurrentL = 1f;
-	private float preCurrentR = 1f;
+	private float preCurrentL = 0.5f;
+	private float preCurrentR = 0.5f;
 	private float widthRamp = 1f; // last applied width (smoothed across buffers)
 
 	/** Last effective post-fader gain used in post(). (linear multiplier) */
@@ -74,14 +79,16 @@ public class Gain implements RTFX, Supplier<GainT> {
 	}
 
 	public void setGain(float g) {
-	    gain = g < 0 ? 0 : g > 1 ? 1 : g;
+	    gain = Math.max(0, Math.min(1, g));
 	}
 	public void setPan(float p) {
-	    stereo = p < 0 ? 0 : p > 1 ? 1 : p;
+	    stereo = Math.max(0, Math.min(1, p));
+	    preCurrentL = getLeft();
+	    preCurrentR = getRight();
 	}
 
 	public void setWidth(float w) {
-	    width = w < 0 ? 0 : w > 2 ? 2 : w;
+	    width = Math.max(0, Math.min(2, w));
 	}
 
 	// Map parameter [0..1] to linear multiplier: 0 -> 0.0, 0.5 -> 1.0, 1.0 -> 2.0
@@ -96,28 +103,22 @@ public class Gain implements RTFX, Supplier<GainT> {
 	}
 
 	public float getRight() {
-	    if (stereo > 0.5f)
-	        return (1 + (stereo - 0.5f) * 0.2f) * preamp;
+	    if (stereo > 0.5f) // towards right, half log increase
+	    	return (1 + (stereo - 0.5f) * 0.2f) * preamp;
 	    return 2 * stereo * preamp;
 	}
 
-	public void monoToStereo(float[] mono, float[] left, float[] right) {
-		// complete pan, preamp, gain with ramping.
-	    if (mono == null || left == null || right == null)
-	    	return;
 
-	    int n = Math.min(mono.length, Math.min(left.length, right.length));
-	    if (n == 0)
-	    	return;
+	public void monoToStereo(float[] mono, float[] left, float[] right) {
+	    int n = right.length;
 
 	    float targetPreL = getLeft();
 	    float targetPreR = getRight();
 	    float targetPost = gainToLinear();
 
-	    float inverse = 1 / n;
-
+	    float inverse = 1.0f / n;
 	    float stepPreL = (targetPreL - preCurrentL) * inverse;
-	    float stepPreR = (targetPreR - preCurrentR) * inverse ;
+	    float stepPreR = (targetPreR - preCurrentR) * inverse;
 	    float stepPost = (targetPost - postCurrent) * inverse;
 
 	    float curPreL = preCurrentL;
@@ -125,9 +126,9 @@ public class Gain implements RTFX, Supplier<GainT> {
 	    float curPost = postCurrent;
 
 	    for (int i = 0; i < n; i++) {
-	        float m = curPost;  // combined multiplier per channel
-	        left[i] = mono[i] * curPreL * m;
-	        right[i] = mono[i] * curPreR * m;
+	    	// mono could be output left, calc right first
+	        right[i] = mono[i] * curPreR * curPost;
+	        left[i] = mono[i] * curPreL * curPost;
 	        curPreL += stepPreL;
 	        curPreR += stepPreR;
 	        curPost += stepPost;
@@ -136,7 +137,6 @@ public class Gain implements RTFX, Supplier<GainT> {
 	    preCurrentL = targetPreL;
 	    preCurrentR = targetPreR;
 	    postCurrent = targetPost;
-
 	}
 
 	/**
@@ -147,8 +147,6 @@ public class Gain implements RTFX, Supplier<GainT> {
 	 */
 	@Override
 	public void process(float[] left, float[] right) {
-	    if (left == null)
-	    	return;
 	    // Mono: width is irrelevant; apply combined ramp for preamp * gain (gain mapped to linear multiplier)
 	    if (right == null) {
 	    	processMono(left);
@@ -157,7 +155,7 @@ public class Gain implements RTFX, Supplier<GainT> {
 
 	    // stereo: apply width first (ramped across buffer), then preamp(pan) + post(fader) ramp
 	    int n = Math.min(left.length, right.length);
-	    if (n <= 0) return;
+	    // if (n <= 0) blow up;
 
 	    // apply width with smoothing from widthRamp -> width
 	    applyWidth(left, right);
@@ -166,19 +164,18 @@ public class Gain implements RTFX, Supplier<GainT> {
 	    float targetPreR = getRight();
 	    float targetPost = gainToLinear();
 
-	    float stepPreL = (targetPreL - preCurrentL) / n;
-	    float stepPreR = (targetPreR - preCurrentR) / n;
-	    float stepPost = (targetPost - postCurrent) / n;
+	    float inverse = 1 / n;
+	    float stepPreL = (targetPreL - preCurrentL) * inverse;
+	    float stepPreR = (targetPreR - preCurrentR) * inverse;
+	    float stepPost = (targetPost - postCurrent) * inverse;
 
 	    float curPreL = preCurrentL;
 	    float curPreR = preCurrentR;
 	    float curPost = postCurrent;
 
 	    for (int i = 0; i < n; i++) {
-	        float mL = curPreL * curPost;
-	        float mR = curPreR * curPost;
-	        left[i] = left[i] * mL;
-	        right[i] = right[i] * mR;
+	        left[i] = left[i] * curPreL * curPost;
+	        right[i] = right[i] * curPreR * curPost;
 	        curPreL += stepPreL;
 	        curPreR += stepPreR;
 	        curPost += stepPost;
@@ -276,9 +273,9 @@ public class Gain implements RTFX, Supplier<GainT> {
 	    gain = 0.5f;
 	    stereo = 0.5f;
 	    preamp = 1f;
-	    preCurrentL = 1f;
-	    preCurrentR = 1f;
-	    postCurrent = 1f;
+	    preCurrentL = getLeft();
+	    preCurrentR = getRight();
+	    postCurrent = gainToLinear();
 	    width = 1f;
 	    widthRamp = 1f;
 	}
@@ -295,6 +292,13 @@ public class Gain implements RTFX, Supplier<GainT> {
 	@Override
 	public GainT get() {
 		return new GainT(preamp, gain, stereo, width);
+	}
+
+	public void set(GainT g) {
+		setPreamp(g.preamp());
+		setGain(g.gain());
+		setPan(g.pan());
+		setWidth(g.width());
 	}
 
 }

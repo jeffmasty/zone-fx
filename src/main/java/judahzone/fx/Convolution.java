@@ -14,6 +14,7 @@ import judahzone.api.FX;
 import judahzone.api.IRProvider;
 import judahzone.util.RTLogger;
 import lombok.Getter;
+import lombok.Setter;
 
 public abstract class Convolution implements FX {
 
@@ -29,8 +30,8 @@ public abstract class Convolution implements FX {
         return Collections.unmodifiableList(build);
     }
 
-    protected static IRProvider db;
-    public static void setIRDB(IRProvider provider) { db = provider; }
+    @Setter @Getter protected static IRProvider IRDB;
+
 
     @Getter
     protected final String name = Convolution.class.getSimpleName();
@@ -102,19 +103,19 @@ public abstract class Convolution implements FX {
         @Override
         public void set(int idx, int value) {
             if (idx == Settings.Cabinet.ordinal()) {
-                if (db == null) {
+                if (IRDB == null) {
                     RTLogger.warn(this, "No IRDB set");
                     return;
                 }
-                if (db.size() == 0) {
+                if (IRDB.size() == 0) {
                     RTLogger.warn(this, "No cabinets loaded");
                     return;
                 }
-                if (value < 0 || value >= db.size()) {
+                if (value < 0 || value >= IRDB.size()) {
                     throw new InvalidParameterException("Cabinet index out of range: " + value);
                 }
                 cabinet = value;
-                irFreq = db.get(cabinet).irFreq();
+                irFreq = IRDB.get(cabinet).irFreq();
                 reset();
                 return;
             }
@@ -131,7 +132,7 @@ public abstract class Convolution implements FX {
         @Override
         public void activate() {
             if (cabinet < 0) {
-                if (db != null) {
+                if (IRDB != null) {
                     set(Settings.Cabinet.ordinal(), 0);
                 }
             }

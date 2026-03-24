@@ -1,4 +1,3 @@
-// language: java
 package judahzone.fx;
 
 import java.security.InvalidParameterException;
@@ -9,6 +8,8 @@ import judahzone.filter.StereoBiquad;
 import judahzone.util.Constants;
 import lombok.Getter;
 
+
+/** A 3 band parametric EQ. Each band wraps StereoBiquad and includes gain, frequency, and width parameters.*/
 public class EQ implements FX.RTFX {
 
     public static enum Settings { Bass, Mid, High, LoHz, Q, HiHz }
